@@ -1,12 +1,14 @@
 
+import { useState } from "react";
 import DesktopChatPage from "./DesktopChatPage";
+import AuthPage from "./AuthPage";
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-
-  return (
-    <>
-      <DesktopChatPage />
-    </>
+  return isAuthenticated ? (
+    <DesktopChatPage />
+  ) : (
+    <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />
   );
 }

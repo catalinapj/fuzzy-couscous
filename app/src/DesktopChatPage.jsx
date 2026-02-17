@@ -7,6 +7,8 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  ListItemAvatar,
+  Avatar,
   Divider,
   TextField,
   Button,
@@ -17,7 +19,50 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const initialChats = [
   { id: "general", name: "General", lastMessage: "Welcome to General" },
   { id: "settings", name: "Settings", lastMessage: "" },
+  { id: "logout", name: "Logout", lastMessage: "" },
 ];
+
+const savedPeople = [
+  { id: 1, name: "Boris Johnson" },
+  { id: 2, name: "Donald Trump" },
+  { id: 3, name: "Joe Biden" },
+  { id: 4, name: "Barack Obama" },
+  { id: 5, name: "Maia Sandu" },
+  { id: 6, name: "Emmanuel Macron" },
+];
+
+function stringToColor(string) {
+  let hash = 0;
+  let i;
+
+  /* eslint-disable no-bitwise */
+  for (i = 0; i < string.length; i += 1) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  let color = "#";
+
+  for (i = 0; i < 3; i += 1) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += `00${value.toString(16)}`.slice(-2);
+  }
+  /* eslint-enable no-bitwise */
+
+  return color;
+}
+
+function stringAvatar(name) {
+  const parts = name.split(" ");
+  const first = parts[0]?.[0] ?? "";
+  const second = parts[1]?.[0] ?? "";
+
+  return {
+    sx: {
+      bgcolor: stringToColor(name),
+    },
+    children: `${first}${second}`.toUpperCase(),
+  };
+}
 
 export default function DesktopChatPage() {
   const [chats] = useState(initialChats);
@@ -95,24 +140,38 @@ export default function DesktopChatPage() {
               height: "100%",
             }}
           >
-            <Box sx={{ p: 1.5 }}>
+            <Box>
               <Typography variant="subtitle1">All Chats</Typography>
             </Box>
             <Divider />
             <Box sx={{ flex: 1, overflowY: "auto" }}>
               <List>
                 {chats.map((chat) => (
-                  <ListItemButton
-                    key={chat.id}
-                    selected={chat.id === selectedChat.id}
-                    divider
-                    onClick={() => handleSelectChat(chat.id)}
-                  >
-                    <ListItemText
-                      primary={chat.name}
-                      secondary={chat.lastMessage}
-                    />
-                  </ListItemButton>
+                  <Box key={chat.id}>
+                    <ListItemButton
+                      selected={chat.id === selectedChat.id}
+                      divider
+                      onClick={() => handleSelectChat(chat.id)}
+                    >
+                      <ListItemText
+                        primary={chat.name}
+                        secondary={chat.lastMessage}
+                      />
+                    </ListItemButton>
+
+                    {chat.id === "general" && selectedChat.id === "general" && (
+                      <List disablePadding>
+                        {savedPeople.map((person) => (
+                          <ListItemButton key={person.id} sx={{ pl: 4 }}>
+                            <ListItemAvatar>
+                              <Avatar {...stringAvatar(person.name)} />
+                            </ListItemAvatar>
+                            <ListItemText primary={person.name} />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    )}
+                  </Box>
                 ))}
               </List>
             </Box>
@@ -132,7 +191,6 @@ export default function DesktopChatPage() {
             <Box sx={{ p: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle1">{selectedChat.name}</Typography>
             </Box>
-
             <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
               {messages.map((m) => (
                 <Box key={m.id} sx={{ mb: 1.5 }}>
