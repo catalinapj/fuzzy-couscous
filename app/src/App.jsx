@@ -1,14 +1,37 @@
-
 import { useState } from "react";
-import DesktopChatPage from "./DesktopChatPage";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./AuthPage";
+import { FooterProvider } from "./contexts/FooterContext";
+import Layout from "./components/Layout";
+import ContactsPage from "./pages/ContactsPage";
+import CallsPage from "./pages/CallsPage";
+import MessagesPage from "./pages/MessagesPage";
+import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  return isAuthenticated ? (
-    <DesktopChatPage />
-  ) : (
-    <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />
+  // if (!isAuthenticated) {
+  //   return <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />;
+  // }
+
+  // unread messages
+  const unreadCount = 3; 
+
+  return (
+    <BrowserRouter>
+      <FooterProvider>
+        <Layout unreadCount={unreadCount}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/chat" element={<MessagesPage />} />
+            <Route path="/contacts" element={<ContactsPage />} />
+            <Route path="/calls" element={<CallsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/chat" replace />} />
+          </Routes>
+        </Layout>
+      </FooterProvider>
+    </BrowserRouter>
   );
 }
