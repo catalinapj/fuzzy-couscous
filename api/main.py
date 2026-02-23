@@ -25,4 +25,3 @@ def register():
 @app.get("/login")
 def login():
     return {"ok": True}
-
