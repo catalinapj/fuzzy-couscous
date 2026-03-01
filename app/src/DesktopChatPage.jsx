@@ -487,7 +487,7 @@ export default function DesktopChatPage({ onNavigate }) {
                           p: 1.5,
                           maxWidth: "60%",
                           bgcolor: isOwnMessage ? 'primary.main' : 'grey.200',
-                          color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
+                          color: 'text.primary',
                           borderRadius: 2,
                           borderTopLeftRadius: isOwnMessage ? 2 : 0,
                           borderTopRightRadius: isOwnMessage ? 0 : 2,
@@ -516,8 +516,6 @@ export default function DesktopChatPage({ onNavigate }) {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: isOwnMessage ? 'primary.contrastText' : 'text.secondary',
-                            opacity: isOwnMessage ? 0.7 : 1,
                             display: "block",
                             textAlign: "right",
                             mt: 0.5,
