@@ -25,7 +25,6 @@ import PersonIcon from "@mui/icons-material/Person";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { colors, commonStyles } from "./theme";
 
 // Convert savedPeople to actual chats with initial messages
 const initialChats = [
@@ -208,10 +207,13 @@ export default function DesktopChatPage({ onNavigate }) {
     return (
       <Box
         sx={{
-          ...commonStyles.container,
+          height: "100vh",
+          width: "100vw",
+          display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: colors.backgroundTertiary,
+          bgcolor: 'grey.100',
         }}
       >
         <Typography>Select a chat to start messaging</Typography>
@@ -226,36 +228,44 @@ export default function DesktopChatPage({ onNavigate }) {
     <Container
       maxWidth={false}
       disableGutters
-      sx={commonStyles.container}
+      sx={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Left Panel - Chat List */}
         <Box
           sx={{
             width: "400px",
-            borderRight: `1px solid ${colors.border}`,
-            ...commonStyles.panel,
+            borderRight: 1,
+            borderColor: 'divider',
+            display: "flex",
+            flexDirection: "column",
           }}
         >
         {/* Header */}
         <Box
           sx={{
-            ...commonStyles.header,
+            p: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600, color: colors.textPrimary }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Chats
           </Typography>
-          <IconButton sx={commonStyles.iconButton}>
+          <IconButton>
             <CreateIcon />
           </IconButton>
         </Box>
 
         {/* Search Bar */}
-        <Box sx={{ p: 1.5, bgcolor: colors.background }}>
+        <Box sx={{ p: 1.5 }}>
           <TextField
             fullWidth
             size="small"
@@ -265,11 +275,10 @@ export default function DesktopChatPage({ onNavigate }) {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: colors.textSecondary }} />
+                  <SearchIcon />
                 </InputAdornment>
               ),
             }}
-            sx={commonStyles.searchInput}
           />
         </Box>
 
@@ -282,8 +291,8 @@ export default function DesktopChatPage({ onNavigate }) {
                 selected={chat.id === selectedChat.id}
                 onClick={() => handleSelectChat(chat.id)}
                 sx={{
-                  ...commonStyles.listItem,
-                  "&.Mui-selected": commonStyles.listItemSelected,
+                  px: 2,
+                  py: 1.5,
                 }}
               >
                 <ListItemAvatar>
@@ -302,14 +311,13 @@ export default function DesktopChatPage({ onNavigate }) {
                         variant="body1"
                         sx={{
                           fontWeight: chat.unreadCount > 0 ? 600 : 400,
-                          color: colors.textPrimary,
                         }}
                       >
                         {chat.name}
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: colors.textSecondary, ml: 1 }}
+                        sx={{ ml: 1 }}
                       >
                         {chat.lastMessageTime}
                       </Typography>
@@ -326,8 +334,8 @@ export default function DesktopChatPage({ onNavigate }) {
                     >
                       <Typography
                         variant="body2"
+                        color="text.secondary"
                         sx={{
-                          color: colors.textSecondary,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -340,11 +348,10 @@ export default function DesktopChatPage({ onNavigate }) {
                         <Chip
                           label={chat.unreadCount}
                           size="small"
+                          color="primary"
                           sx={{
                             height: "20px",
                             minWidth: "20px",
-                            bgcolor: colors.badge,
-                            color: "white",
                             fontSize: "0.7rem",
                             fontWeight: 600,
                             ml: 1,
@@ -366,13 +373,14 @@ export default function DesktopChatPage({ onNavigate }) {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          bgcolor: colors.background,
         }}
       >
         {/* Conversation Header */}
         <Box
           sx={{
-            ...commonStyles.header,
+            p: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -381,25 +389,25 @@ export default function DesktopChatPage({ onNavigate }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar {...stringAvatar(selectedChat.name)} />
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.textPrimary }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {selectedChat.name}
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: colors.textSecondary }}
+                color="text.secondary"
               >
                 last seen recently
               </Typography>
             </Box>
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton sx={commonStyles.iconButton}>
+            <IconButton>
               <PhoneIcon />
             </IconButton>
-            <IconButton sx={commonStyles.iconButton}>
+            <IconButton>
               <SearchIcon />
             </IconButton>
-            <IconButton sx={commonStyles.iconButton}>
+            <IconButton>
               <MoreVertIcon />
             </IconButton>
           </Box>
@@ -424,7 +432,6 @@ export default function DesktopChatPage({ onNavigate }) {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: colors.textSecondary,
                 }}
               >
               <Typography variant="body2" sx={{ mb: 1 }}>
@@ -459,9 +466,9 @@ export default function DesktopChatPage({ onNavigate }) {
                         <Chip
                           label={formatTime(message.timestamp)}
                           size="small"
+                          variant="filled"
                           sx={{
-                            bgcolor: colors.hover,
-                            color: colors.textSecondary,
+                            bgcolor: 'action.selected',
                             fontSize: "0.75rem",
                           }}
                         />
@@ -479,14 +486,17 @@ export default function DesktopChatPage({ onNavigate }) {
                         sx={{
                           p: 1.5,
                           maxWidth: "60%",
-                          ...(isOwnMessage ? commonStyles.messageBubbleOwn : commonStyles.messageBubbleOther),
+                          bgcolor: isOwnMessage ? 'primary.main' : 'grey.200',
+                          color: 'text.primary',
+                          borderRadius: 2,
+                          borderTopLeftRadius: isOwnMessage ? 2 : 0,
+                          borderTopRightRadius: isOwnMessage ? 0 : 2,
                         }}
                       >
                         {!isOwnMessage && (
                           <Typography
                             variant="caption"
                             sx={{
-                              color: colors.textPrimary,
                               fontWeight: 600,
                               display: "block",
                               mb: 0.5,
@@ -498,7 +508,6 @@ export default function DesktopChatPage({ onNavigate }) {
                         <Typography
                           variant="body1"
                           sx={{
-                            color: isOwnMessage ? "white" : colors.textPrimary,
                             wordBreak: "break-word",
                           }}
                         >
@@ -507,7 +516,6 @@ export default function DesktopChatPage({ onNavigate }) {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: isOwnMessage ? "rgba(255, 255, 255, 0.7)" : colors.textSecondary,
                             display: "block",
                             textAlign: "right",
                             mt: 0.5,
@@ -535,7 +543,13 @@ export default function DesktopChatPage({ onNavigate }) {
       </Box>
 
       {/* Footer */}
-      <Box sx={commonStyles.footer}>
+      <Box sx={{
+        height: "64px",
+        borderTop: 1,
+        borderColor: 'divider',
+        display: "flex",
+        width: "100%",
+      }}>
         {/* Left Side - Navigation Icons */}
         <Box
           sx={{
@@ -543,8 +557,8 @@ export default function DesktopChatPage({ onNavigate }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-around",
-            borderRight: `1px solid ${colors.border}`,
-            bgcolor: colors.backgroundSecondary,
+            borderRight: 1,
+            borderColor: 'divider',
           }}
         >
           <IconButton
@@ -553,8 +567,7 @@ export default function DesktopChatPage({ onNavigate }) {
               onNavigate?.("contacts");
             }}
             sx={{
-              ...commonStyles.iconButton,
-              color: currentNav === "contacts" ? colors.primary : colors.textSecondary,
+              color: currentNav === "contacts" ? 'primary.main' : 'text.secondary',
             }}
           >
             <PersonIcon sx={{ fontSize: 28 }} />
@@ -565,8 +578,7 @@ export default function DesktopChatPage({ onNavigate }) {
               onNavigate?.("calls");
             }}
             sx={{
-              ...commonStyles.iconButton,
-              color: currentNav === "calls" ? colors.primary : colors.textSecondary,
+              color: currentNav === "calls" ? 'primary.main' : 'text.secondary',
             }}
           >
             <PhoneIcon sx={{ fontSize: 28 }} />
@@ -577,20 +589,13 @@ export default function DesktopChatPage({ onNavigate }) {
               onNavigate?.("messages");
             }}
             sx={{
-              ...commonStyles.iconButton,
-              color: currentNav === "messages" ? colors.primary : colors.textSecondary,
+              color: currentNav === "messages" ? 'primary.main' : 'text.secondary',
             }}
           >
             {unreadCount > 0 ? (
               <Badge
                 badgeContent={unreadCount}
                 color="error"
-                sx={{
-                  "& .MuiBadge-badge": {
-                    bgcolor: colors.badgeError,
-                    color: "white",
-                  },
-                }}
               >
                 <ChatBubbleIcon sx={{ fontSize: 28 }} />
               </Badge>
@@ -604,8 +609,7 @@ export default function DesktopChatPage({ onNavigate }) {
               onNavigate?.("settings");
             }}
             sx={{
-              ...commonStyles.iconButton,
-              color: currentNav === "settings" ? colors.primary : colors.textSecondary,
+              color: currentNav === "settings" ? 'primary.main' : 'text.secondary',
             }}
           >
             <SettingsIcon sx={{ fontSize: 28 }} />
@@ -620,10 +624,9 @@ export default function DesktopChatPage({ onNavigate }) {
             alignItems: "center",
             gap: 1,
             px: 2,
-            bgcolor: colors.background,
           }}
         >
-          <IconButton sx={commonStyles.iconButton}>
+          <IconButton>
             <AttachFileIcon />
           </IconButton>
           <TextField
@@ -636,12 +639,11 @@ export default function DesktopChatPage({ onNavigate }) {
             }
             multiline
             maxRows={4}
-            sx={commonStyles.input}
           />
-          <IconButton sx={commonStyles.iconButton}>
+          <IconButton>
             <EmojiEmotionsIcon />
           </IconButton>
-          <IconButton sx={commonStyles.iconButton}>
+          <IconButton>
             <MicIcon />
           </IconButton>
         </Box>

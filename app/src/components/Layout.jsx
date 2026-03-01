@@ -1,10 +1,7 @@
 import { Box, Badge, IconButton } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
-import PhoneIcon from "@mui/icons-material/Phone";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useNavigate, useLocation } from "react-router-dom";
-import { colors, commonStyles } from "../theme";
 import { useFooter } from "../contexts/FooterContext";
 
 export default function Layout({ children, unreadCount = 0 }) {
@@ -13,8 +10,6 @@ export default function Layout({ children, unreadCount = 0 }) {
   const location = useLocation();
 
   const navItems = [
-    { id: "contacts", path: "/contacts", icon: PersonIcon, label: "Contacts" },
-    { id: "calls", path: "/calls", icon: PhoneIcon, label: "Calls" },
     { id: "messages", path: "/chat", icon: ChatBubbleIcon, label: "Messages", badge: unreadCount },
     { id: "settings", path: "/settings", icon: SettingsIcon, label: "Settings" },
   ];
@@ -28,7 +23,14 @@ export default function Layout({ children, unreadCount = 0 }) {
       </Box>
       
       {/* Footer Navigation */}
-      <Box sx={commonStyles.footer}>
+      <Box sx={{
+        height: "64px",
+        borderTop: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        display: "flex",
+        width: "100%",
+      }}>
         {/* Left Side - Navigation Icons */}
         <Box
           sx={{
@@ -36,34 +38,27 @@ export default function Layout({ children, unreadCount = 0 }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-around",
-            borderRight: `1px solid ${colors.border}`,
-            bgcolor: colors.backgroundSecondary,
+            borderRight: 1,
+            borderColor: 'divider',
+            bgcolor: 'grey.50',
           }}
         >
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
-            const iconColor = active ? colors.primary : colors.textSecondary;
 
             return (
               <IconButton
                 key={item.id}
                 onClick={() => navigate(item.path)}
                 sx={{
-                  ...commonStyles.iconButton,
-                  color: iconColor,
+                  color: active ? 'primary.main' : 'text.secondary',
                 }}
               >
                 {item.badge !== undefined && item.badge > 0 ? (
                   <Badge
                     badgeContent={item.badge}
                     color="error"
-                    sx={{
-                      "& .MuiBadge-badge": {
-                        bgcolor: colors.badgeError,
-                        color: "white",
-                      },
-                    }}
                   >
                     <Icon sx={{ fontSize: 28 }} />
                   </Badge>
@@ -79,7 +74,7 @@ export default function Layout({ children, unreadCount = 0 }) {
         <Box
           sx={{
             flex: 1,
-            bgcolor: colors.background,
+            bgcolor: 'background.paper',
           }}
         >
           {footerContent}
