@@ -12,8 +12,6 @@ export default function Layout({ children, unreadCount = 0 }) {
   const location = useLocation();
 
   const navItems = [
-    { id: "contacts", path: "/contacts", icon: PersonIcon, label: "Contacts" },
-    { id: "calls", path: "/calls", icon: PhoneIcon, label: "Calls" },
     { id: "messages", path: "/chat", icon: ChatBubbleIcon, label: "Messages", badge: unreadCount },
     { id: "settings", path: "/settings", icon: SettingsIcon, label: "Settings" },
   ];
