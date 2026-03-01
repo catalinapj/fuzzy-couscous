@@ -1,6 +1,4 @@
 import { Box, Badge, IconButton } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
-import PhoneIcon from "@mui/icons-material/Phone";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useNavigate, useLocation } from "react-router-dom";

@@ -1,7 +1,6 @@
 import { Box, TextField, IconButton } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
-import MicIcon from "@mui/icons-material/Mic";
+import SendIcon from '@mui/icons-material/Send';
 
 export default function MessageInputFooter({ input, setInput, onSend }) {
   const handleKeyDown = (e) => {
@@ -26,10 +25,7 @@ export default function MessageInputFooter({ input, setInput, onSend }) {
         maxRows={4}
       />
       <IconButton>
-        <EmojiEmotionsIcon />
-      </IconButton>
-      <IconButton>
-        <MicIcon />
+        <SendIcon />
       </IconButton>
     </Box>
   );
