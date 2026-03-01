@@ -157,8 +157,7 @@ export default function MessagesPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "#f5f5f5",
-          color: "text.primary",
+          bgcolor: 'grey.100',
         }}
       >
         <Typography>Select a chat to start messaging</Typography>
@@ -174,18 +173,18 @@ export default function MessagesPage() {
         height: "calc(100vh - 64px)",
         width: "100vw",
         display: "flex",
-        bgcolor: "#ffffff",
-        color: "text.primary",
+        bgcolor: 'background.paper',
       }}
     >
       {/* Left Panel - Chat List */}
       <Box
         sx={{
           width: "400px",
-          borderRight: "1px solid rgba(0, 0, 0, 0.12)",
+          borderRight: 1,
+          borderColor: 'divider',
           display: "flex",
           flexDirection: "column",
-          bgcolor: "#f8f9fa",
+          bgcolor: 'grey.50',
         }}
       >
         {/* Header */}
@@ -195,25 +194,21 @@ export default function MessagesPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-            bgcolor: "#ffffff",
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Chats
           </Typography>
-          <IconButton
-            sx={{
-              color: "text.primary",
-              "&:hover": { bgcolor: "rgba(0, 0, 0, 0.04)" },
-            }}
-          >
+          <IconButton>
             <CreateIcon />
           </IconButton>
         </Box>
 
         {/* Search Bar */}
-        <Box sx={{ p: 1.5, bgcolor: "#ffffff" }}>
+        <Box sx={{ p: 1.5, bgcolor: 'background.paper' }}>
           <TextField
             fullWidth
             size="small"
@@ -223,27 +218,9 @@ export default function MessagesPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "text.secondary" }} />
+                  <SearchIcon />
                 </InputAdornment>
               ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "#ffffff",
-                color: "text.primary",
-                "& fieldset": {
-                  borderColor: "rgba(0, 0, 0, 0.12)",
-                },
-                "&:hover fieldset": {
-                  borderColor: "rgba(0, 0, 0, 0.23)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#0088cc",
-                },
-              },
-              "& .MuiInputBase-input::placeholder": {
-                color: "text.secondary",
-              },
             }}
           />
         </Box>
@@ -260,13 +237,10 @@ export default function MessagesPage() {
                   px: 2,
                   py: 1.5,
                   "&.Mui-selected": {
-                    bgcolor: "#e3f2fd",
+                    bgcolor: 'action.selected',
                     "&:hover": {
-                      bgcolor: "#bbdefb",
+                      bgcolor: 'action.hover',
                     },
-                  },
-                  "&:hover": {
-                    bgcolor: "rgba(0, 0, 0, 0.04)",
                   },
                 }}
               >
@@ -286,7 +260,6 @@ export default function MessagesPage() {
                         variant="body1"
                         sx={{
                           fontWeight: chat.unreadCount > 0 ? 600 : 400,
-                          color: "text.primary",
                         }}
                       >
                         {chat.name}
@@ -324,11 +297,10 @@ export default function MessagesPage() {
                         <Chip
                           label={chat.unreadCount}
                           size="small"
+                          color="primary"
                           sx={{
                             height: "20px",
                             minWidth: "20px",
-                            bgcolor: "#0088cc",
-                            color: "white",
                             fontSize: "0.7rem",
                             fontWeight: 600,
                             ml: 1,
@@ -350,7 +322,7 @@ export default function MessagesPage() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          bgcolor: "#ffffff",
+          bgcolor: 'background.paper',
         }}
       >
         {/* Conversation Header */}
@@ -360,14 +332,15 @@ export default function MessagesPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-            bgcolor: "#ffffff",
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar {...stringAvatar(selectedChat.name)} />
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "text.primary" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {selectedChat.name}
               </Typography>
               <Typography
@@ -379,28 +352,13 @@ export default function MessagesPage() {
             </Box>
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton
-              sx={{
-                color: "text.primary",
-                "&:hover": { bgcolor: "rgba(0, 0, 0, 0.04)" },
-              }}
-            >
+            <IconButton>
               <PhoneIcon />
             </IconButton>
-            <IconButton
-              sx={{
-                color: "text.primary",
-                "&:hover": { bgcolor: "rgba(0, 0, 0, 0.04)" },
-              }}
-            >
+            <IconButton>
               <SearchIcon />
             </IconButton>
-            <IconButton
-              sx={{
-                color: "text.primary",
-                "&:hover": { bgcolor: "rgba(0, 0, 0, 0.04)" },
-              }}
-            >
+            <IconButton>
               <MoreVertIcon />
             </IconButton>
           </Box>
@@ -460,9 +418,9 @@ export default function MessagesPage() {
                         <Chip
                           label={formatTime(message.timestamp)}
                           size="small"
+                          variant="filled"
                           sx={{
-                            bgcolor: "rgba(0, 0, 0, 0.06)",
-                            color: "text.secondary",
+                            bgcolor: 'action.selected',
                             fontSize: "0.75rem",
                           }}
                         />
@@ -481,8 +439,9 @@ export default function MessagesPage() {
                           p: 1.5,
                           maxWidth: "60%",
                           bgcolor: isOwnMessage
-                            ? "#0088cc"
-                            : "#e4e6eb",
+                            ? 'primary.main'
+                            : 'grey.200',
+                          color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
                           borderRadius: 2,
                           borderTopLeftRadius: isOwnMessage ? 2 : 0,
                           borderTopRightRadius: isOwnMessage ? 0 : 2,
@@ -492,7 +451,6 @@ export default function MessagesPage() {
                           <Typography
                             variant="caption"
                             sx={{
-                              color: "text.primary",
                               fontWeight: 600,
                               display: "block",
                               mb: 0.5,
@@ -504,7 +462,6 @@ export default function MessagesPage() {
                         <Typography
                           variant="body1"
                           sx={{
-                            color: isOwnMessage ? "white" : "text.primary",
                             wordBreak: "break-word",
                           }}
                         >
@@ -513,7 +470,8 @@ export default function MessagesPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: isOwnMessage ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
+                            color: isOwnMessage ? 'primary.contrastText' : 'text.secondary',
+                            opacity: isOwnMessage ? 0.7 : 1,
                             display: "block",
                             textAlign: "right",
                             mt: 0.5,
