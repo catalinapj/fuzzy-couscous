@@ -9,11 +9,12 @@
 from fastapi import FastAPI
 from .database import engine
 from sqlalchemy import text
+from app.routers import users
 
 app = FastAPI()
 
-@app.get("/")
-def root():
-    with engine.connect() as connection:
-        result = connection.execute(text("SELECT 1"))
-        return {"db": "connected"}
+app.include_router(
+    users.router,
+    prefix="/users",
+    tags=["users"]
+)
