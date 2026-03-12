@@ -1,10 +1,12 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users
+from app.routers import users, auth
 
 app = FastAPI()
 
-app.include_router(users.router) 
+# app.include_router(users.router) 
+app.include_router(auth.router)
+app.include_router(users.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,14 +19,4 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"ok": True}
-
-
-@app.get("/register")
-def register():
-    return {"ok": True}
-
-
-@app.get("/login")
-def login():
     return {"ok": True}

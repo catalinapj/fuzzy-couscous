@@ -15,40 +15,71 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CreateIcon from "@mui/icons-material/Create";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
-import MicIcon from "@mui/icons-material/Mic";
 import PhoneIcon from "@mui/icons-material/Phone";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { contacts, stringAvatar } from "../data/contacts";
+import { stringAvatar } from "../data/contacts";
 import { useFooter } from "../contexts/FooterContext";
 import MessageInputFooter from "../components/MessageInputFooter";
 
-// Convert contacts to chats with initial messages
-const initialChats = contacts.map((contact, index) => ({
-  id: contact.id,
-  name: contact.name,
-  lastMessage: index === 0 ? "Hello there!" : index === 1 ? "How are you doing?" : "Thanks for the update",
-  lastMessageTime: index === 0 ? "17:13" : index === 1 ? "12:54" : "Tue",
-  unreadCount: index === 1 ? 2 : index === 4 ? 1 : 0,
-}));
-
 export default function MessagesPage() {
-  const [chats, setChats] = useState(initialChats);
-  const [selectedChatId, setSelectedChatId] = useState(initialChats[0]?.id || null);
-  const [messagesByChat, setMessagesByChat] = useState({
-    1: [{ id: 1, text: "Hello there!", author: contacts[0].name, timestamp: new Date(Date.now() - 3600000) }],
-    2: [{ id: 1, text: "How are you doing?", author: contacts[1].name, timestamp: new Date(Date.now() - 7200000) }],
-    3: [{ id: 1, text: "Thanks for the update", author: contacts[2].name, timestamp: new Date(Date.now() - 86400000) }],
-    4: [{ id: 1, text: "See you tomorrow", author: contacts[3].name, timestamp: new Date(Date.now() - 172800000) }],
-    5: [{ id: 1, text: "Great meeting today!", author: contacts[4].name, timestamp: new Date(Date.now() - 259200000) }],
-    6: [{ id: 1, text: "Looking forward to it", author: contacts[5].name, timestamp: new Date(Date.now() - 345600000) }],
-  });
+  const [chats, setChats] = useState([]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [messagesByChat, setMessagesByChat] = useState({});
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
   const { setFooterContent } = useFooter();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        setError("No token found. Please log in first.");
+        setLoadingUsers(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("http://127.0.0.1:8080/users/", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.detail || "Failed to fetch users");
+        }
+
+        const users = await response.json();
+
+        const userChats = users.map((user, index) => ({
+          id: user.id,
+          name: user.username,
+          lastMessage: "Start chatting",
+          lastMessageTime: index === 0 ? "Now" : "",
+          unreadCount: 0,
+        }));
+
+        setChats(userChats);
+        if (userChats.length > 0) {
+          setSelectedChatId(userChats[0].id);
+        }
+      } catch (err) {
+        setError(err.message || "Unexpected error while fetching users");
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const selectedChat = useMemo(
     () => chats.find((c) => c.id === selectedChatId) || chats[0],
@@ -227,6 +258,16 @@ export default function MessagesPage() {
 
         {/* Chat List */}
         <Box sx={{ flex: 1, overflowY: "auto" }}>
+          {loadingUsers && (
+            <Typography sx={{ px: 2, py: 1.5, color: "text.secondary" }}>
+              Loading users...
+            </Typography>
+          )}
+          {error && (
+            <Typography sx={{ px: 2, py: 1.5, color: "red" }}>
+              {error}
+            </Typography>
+          )}
           <List disablePadding>
             {filteredChats.map((chat) => (
               <ListItemButton
