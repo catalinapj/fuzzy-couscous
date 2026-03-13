@@ -14,5 +14,19 @@ services:
     volumes:
       - chat_pg_data:/var/lib/postgresql/data
 
+  postgres_test:
+    image: postgres:16
+    container_name: chat-postgres-test
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: chatapp_test
+    ports:
+      - "5433:5432" 
+    volumes:
+      - chat_pg_test_data:/var/lib/postgresql/data
+
 volumes:
   chat_pg_data:
+  chat_pg_test_data:
