@@ -14,7 +14,7 @@ from main import app
 # Make sure this database exists (created via psql or your migration tooling).
 POSTGRES_TEST_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg2://admin:secret@localhost:5432/chatapp_test",
+    "postgresql+psycopg2://admin:secret@localhost:5433/chatapp_test",
 )
 
 engine = create_engine(POSTGRES_TEST_URL, pool_pre_ping=True)
