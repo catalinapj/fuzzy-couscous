@@ -26,18 +26,24 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
+        if "email" in str(e.orig).lower():
+            detail = "Email already registered"
+        elif "username" in str(e.orig).lower():
+            detail = "Username already taken"
+        else:
+            detail = "Registration conflict"
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
+            detail=detail,
         )
 
     db.refresh(db_user)
     return db_user
 
 
-@router.post("/token", response_model=schemas.Token)
+@router.post("/login", response_model=schemas.Token)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
