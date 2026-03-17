@@ -45,8 +45,8 @@ def db_session(setup_test_database) -> Generator:
     try:
         yield session
     finally:
-        session.close()
         transaction.rollback()
+        session.close()
         connection.close()
 
 
