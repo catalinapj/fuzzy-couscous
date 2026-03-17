@@ -1,5 +1,6 @@
 import { Box, Badge, IconButton } from "@mui/material";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
+import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useFooter } from "../contexts/FooterContext";
@@ -11,6 +12,7 @@ export default function Layout({ children, unreadCount = 0 }) {
 
   const navItems = [
     { id: "messages", path: "/chat", icon: ChatBubbleIcon, label: "Messages", badge: unreadCount },
+    { id: "users", path: "/users", icon: PeopleIcon, label: "Users" },
     { id: "settings", path: "/settings", icon: SettingsIcon, label: "Settings" },
   ];
 
