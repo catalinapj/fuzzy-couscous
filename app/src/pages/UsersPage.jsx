@@ -1,4 +1,15 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  CircularProgress,
+} from "@mui/material";
+import { stringAvatar } from "../data/contacts";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -42,23 +53,72 @@ export default function UsersPage() {
   }, []);
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <h1>Users</h1>
+    <Box
+      sx={{
+        height: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box
+        sx={{
+          p: 2,
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Users
+        </Typography>
+      </Box>
 
-      {loading && <p>Loading users...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <Box sx={{ flex: 1, overflowY: "auto" }}>
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
+            <CircularProgress size={32} />
+          </Box>
+        )}
 
-      {!loading && !error && (
-        <ul style={{ marginTop: "1rem" }}>
-          {users.map((user) => (
-            <li key={user.id}>
-              {user.username} — {user.email}
-            </li>
-          ))}
-          {users.length === 0 && <p>No users found.</p>}
-        </ul>
-      )}
-    </div>
+        {error && (
+          <Typography sx={{ px: 2, py: 2, color: "error.main" }}>
+            {error}
+          </Typography>
+        )}
+
+        {!loading && !error && users.length === 0 && (
+          <Typography sx={{ px: 2, py: 2, color: "text.secondary" }}>
+            No users found.
+          </Typography>
+        )}
+
+        {!loading && !error && users.length > 0 && (
+          <List disablePadding>
+            {users.map((user) => (
+              <ListItem
+                key={user.id}
+                sx={{
+                  px: 2,
+                  py: 1.5,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <ListItemAvatar>
+                  <Avatar {...stringAvatar(user.username)} />
+                </ListItemAvatar>
+                <ListItemText
+                  primary={
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {user.username}
+                    </Typography>
+                  }
+                  secondary={user.email}
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
+      </Box>
+    </Box>
   );
 }
-

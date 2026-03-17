@@ -67,3 +67,34 @@ def client(db_session) -> TestClient:
         yield test_client
     app.dependency_overrides.clear()
 
+
+MOCK_USER_EMAIL = "user-1@mail.com"
+MOCK_USER_USERNAME = "user-1"
+MOCK_USER_PASSWORD = "strongpassword"
+
+
+@pytest.fixture
+def mock_user(client):
+    """A registered user in the database."""
+    resp = client.post("/auth/register", json={
+        "email": MOCK_USER_EMAIL,
+        "username": MOCK_USER_USERNAME,
+        "password": MOCK_USER_PASSWORD,
+    })
+    return resp.json()
+
+
+@pytest.fixture
+def auth(client, mock_user):
+    """Auth token and header for mock_user."""
+    resp = client.post(
+        "/auth/login",
+        data={"username": MOCK_USER_EMAIL, "password": MOCK_USER_PASSWORD},
+    )
+    token = resp.json()["access_token"]
+    return {"token": token, "header": {"Authorization": f"Bearer {token}"}}
+
+
+def auth_header(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
