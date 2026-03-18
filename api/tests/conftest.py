@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db
+from app.models import User
+from app.core.security import hash_password, create_access_token
 from main import app
 
 
@@ -68,33 +70,51 @@ def client(db_session) -> TestClient:
     app.dependency_overrides.clear()
 
 
-MOCK_USER_EMAIL = "user-1@mail.com"
-MOCK_USER_USERNAME = "user-1"
-MOCK_USER_PASSWORD = "strongpassword"
+HASHED_PASSWORD = hash_password("strongpassword")
 
 
 @pytest.fixture
-def mock_user(client):
-    """A registered user in the database."""
-    resp = client.post("/auth/register", json={
-        "email": MOCK_USER_EMAIL,
-        "username": MOCK_USER_USERNAME,
-        "password": MOCK_USER_PASSWORD,
-    })
-    return resp.json()
+def user_factory(db_session):
+    """Batch-insert users into the DB.
+
+    Usage:
+        users = user_factory(["alice", "bob"])
+        # returns {"alice": {id, email, username}, "bob": {id, email, username}}
+    """
+
+    def create(names: list[str]):
+        db_users = [
+            User(
+                email=f"{name}@mail.com",
+                username=name,
+                hashed_password=HASHED_PASSWORD,
+            )
+            for name in names
+        ]
+        db_session.add_all(db_users)
+        db_session.flush()
+
+        return {
+            u.username: {"id": u.id, "email": u.email, "username": u.username}
+            for u in db_users
+        }
+
+    return create
+
+
+def get_token(user: dict) -> str:
+    """Generate an access token for a user dict."""
+    return create_access_token(subject=str(user["id"]))
+
+
+def get_auth_header(user: dict) -> dict:
+    """Generate an Authorization header for a user dict."""
+    return {"Authorization": f"Bearer {get_token(user)}"}
 
 
 @pytest.fixture
-def auth(client, mock_user):
-    """Auth token and header for mock_user."""
-    resp = client.post(
-        "/auth/login",
-        data={"username": MOCK_USER_EMAIL, "password": MOCK_USER_PASSWORD},
-    )
-    token = resp.json()["access_token"]
-    return {"token": token, "header": {"Authorization": f"Bearer {token}"}}
-
-
-def auth_header(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
+def mock_user(user_factory):
+    """A single registered user (user-1@mail.com)."""
+    users = user_factory(["user-1"])
+    return users["user-1"]
 

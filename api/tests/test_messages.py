@@ -1,39 +1,25 @@
 from fastapi.testclient import TestClient
-from tests.conftest import auth_header
-
-
-def _create_second_user(client: TestClient):
-    """Register a second user and return (token, user_id)."""
-    client.post("/auth/register", json={
-        "email": "user-2@mail.com",
-        "username": "user-2",
-        "password": "strongpassword",
-    })
-    resp = client.post(
-        "/auth/login",
-        data={"username": "user-2@mail.com", "password": "strongpassword"},
-    )
-    token = resp.json()["access_token"]
-    me = client.get("/users/me", headers=auth_header(token))
-    return token, me.json()["id"]
+from tests.conftest import get_auth_header
 
 
 # --- POST /messages/ ---
 
 
-def test_create_message(client: TestClient, auth):
-    _, receiver_id = _create_second_user(client)
+def test_create_message(client: TestClient, user_factory):
+    users = user_factory(["sender", "receiver"])
+    sender = users["sender"]
+    receiver = users["receiver"]
 
     response = client.post(
         "/messages/",
-        json={"receiver_id": receiver_id, "content": "Hello!"},
-        headers=auth["header"],
+        json={"receiver_id": receiver["id"], "content": "Hello!"},
+        headers=get_auth_header(sender),
     )
 
     assert response.status_code == 200
     data = response.json()
     assert data["content"] == "Hello!"
-    assert data["receiver_id"] == receiver_id
+    assert data["receiver_id"] == receiver["id"]
     assert "id" in data
     assert "sender_id" in data
     assert "created_at" in data
@@ -48,44 +34,44 @@ def test_create_message_requires_authentication(client: TestClient):
     assert response.status_code == 401
 
 
-def test_create_message_rejects_empty_content(client: TestClient, auth):
+def test_create_message_rejects_empty_content(client: TestClient, mock_user):
     response = client.post(
         "/messages/",
         json={"receiver_id": 999, "content": ""},
-        headers=auth["header"],
+        headers=get_auth_header(mock_user),
     )
 
     assert response.status_code == 422
 
 
-def test_create_message_rejects_content_over_2000_chars(client: TestClient, auth):
+def test_create_message_rejects_content_over_2000_chars(client: TestClient, mock_user):
     response = client.post(
         "/messages/",
         json={"receiver_id": 999, "content": "a" * 2001},
-        headers=auth["header"],
+        headers=get_auth_header(mock_user),
     )
 
     assert response.status_code == 422
 
 
-def test_create_message_accepts_content_at_max_length(client: TestClient, auth):
-    _, receiver_id = _create_second_user(client)
+def test_create_message_accepts_content_at_max_length(client: TestClient, user_factory):
+    users = user_factory(["sender", "receiver"])
 
     response = client.post(
         "/messages/",
-        json={"receiver_id": receiver_id, "content": "a" * 2000},
-        headers=auth["header"],
+        json={"receiver_id": users["receiver"]["id"], "content": "a" * 2000},
+        headers=get_auth_header(users["sender"]),
     )
 
     assert response.status_code == 200
     assert len(response.json()["content"]) == 2000
 
 
-def test_create_message_rejects_missing_fields(client: TestClient, auth):
+def test_create_message_rejects_missing_fields(client: TestClient, mock_user):
     response = client.post(
         "/messages/",
         json={},
-        headers=auth["header"],
+        headers=get_auth_header(mock_user),
     )
 
     assert response.status_code == 422
@@ -94,21 +80,23 @@ def test_create_message_rejects_missing_fields(client: TestClient, auth):
 # --- GET /messages/ ---
 
 
-def test_list_messages_returns_sent_messages(client: TestClient, auth):
-    _, receiver_id = _create_second_user(client)
+def test_list_messages_returns_sent_messages(client: TestClient, user_factory):
+    users = user_factory(["sender", "receiver"])
+    sender = users["sender"]
+    receiver = users["receiver"]
 
     client.post(
         "/messages/",
-        json={"receiver_id": receiver_id, "content": "First message"},
-        headers=auth["header"],
+        json={"receiver_id": receiver["id"], "content": "First message"},
+        headers=get_auth_header(sender),
     )
     client.post(
         "/messages/",
-        json={"receiver_id": receiver_id, "content": "Second message"},
-        headers=auth["header"],
+        json={"receiver_id": receiver["id"], "content": "Second message"},
+        headers=get_auth_header(sender),
     )
 
-    response = client.get("/messages/", headers=auth["header"])
+    response = client.get("/messages/", headers=get_auth_header(sender))
 
     assert response.status_code == 200
     data = response.json()
@@ -119,8 +107,8 @@ def test_list_messages_returns_sent_messages(client: TestClient, auth):
     assert "Second message" in contents
 
 
-def test_list_messages_returns_empty_for_new_user(client: TestClient, auth):
-    response = client.get("/messages/", headers=auth["header"])
+def test_list_messages_returns_empty_for_new_user(client: TestClient, mock_user):
+    response = client.get("/messages/", headers=get_auth_header(mock_user))
 
     assert response.status_code == 200
     assert response.json() == []
@@ -132,28 +120,27 @@ def test_list_messages_requires_authentication(client: TestClient):
     assert response.status_code == 401
 
 
-def test_list_messages_only_returns_own_messages(client: TestClient, auth):
-    user2_token, user2_id = _create_second_user(client)
-
-    me = client.get("/users/me", headers=auth["header"]).json()
-    user1_id = me["id"]
+def test_list_messages_only_returns_own_messages(client: TestClient, user_factory):
+    users = user_factory(["alice", "bob"])
+    alice = users["alice"]
+    bob = users["bob"]
 
     client.post(
         "/messages/",
-        json={"receiver_id": user2_id, "content": "From user-1"},
-        headers=auth["header"],
+        json={"receiver_id": bob["id"], "content": "From Alice"},
+        headers=get_auth_header(alice),
     )
     client.post(
         "/messages/",
-        json={"receiver_id": user1_id, "content": "From user-2"},
-        headers=auth_header(user2_token),
+        json={"receiver_id": alice["id"], "content": "From Bob"},
+        headers=get_auth_header(bob),
     )
 
-    user1_messages = client.get("/messages/", headers=auth["header"]).json()
-    user2_messages = client.get("/messages/", headers=auth_header(user2_token)).json()
+    alice_messages = client.get("/messages/", headers=get_auth_header(alice)).json()
+    bob_messages = client.get("/messages/", headers=get_auth_header(bob)).json()
 
-    assert len(user1_messages) == 1
-    assert user1_messages[0]["content"] == "From user-1"
+    assert len(alice_messages) == 1
+    assert alice_messages[0]["content"] == "From Alice"
 
-    assert len(user2_messages) == 1
-    assert user2_messages[0]["content"] == "From user-2"
+    assert len(bob_messages) == 1
+    assert bob_messages[0]["content"] == "From Bob"
