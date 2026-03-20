@@ -18,4 +18,11 @@ class UserResponse(BaseModel):
     username: str
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+
+class PaginatedUsersResponse(BaseModel):
+    users: list[UserResponse]
+    page: int
+    per_page: int
+    total: int
