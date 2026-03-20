@@ -1,26 +1,81 @@
 from fastapi.testclient import TestClient
 from tests.conftest import get_auth_header
 
-def test_list_users_returns_registered_users(client: TestClient, user_factory):
 
-    user_list = [f"user-{i}" for i in range(100)]
-    users = user_factory(user_list)
-    response = client.get("/users/", headers=get_auth_header(users["user-1"]))
+def test_list_users_returns_first_page_by_default(client: TestClient, user_factory):
+    names = [f"user-{i}" for i in range(25)]
+    users = user_factory(names)
+    header = get_auth_header(users["user-0"])
+
+    response = client.get("/users/", headers=header)
 
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == 100
+    assert data["page"] == 1
+    assert data["per_page"] == 10
+    assert data["total"] == 25
+    assert len(data["users"]) == 10
 
-    usernames = {u["username"] for u in data}
-    assert "user-1" in usernames
-    assert "user-2" in usernames
 
-    for user in data:
-        assert "id" in user
-        assert "email" in user
-        assert "username" in user
-        assert "hashed_password" not in user
+def test_list_users_second_page(client: TestClient, user_factory):
+    names = [f"user-{i}" for i in range(25)]
+    users = user_factory(names)
+    header = get_auth_header(users["user-0"])
+
+    response = client.get("/users/?page=2", headers=header)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 2
+    assert len(data["users"]) == 10
+
+
+def test_list_users_last_page_partial(client: TestClient, user_factory):
+    names = [f"user-{i}" for i in range(25)]
+    users = user_factory(names)
+    header = get_auth_header(users["user-0"])
+
+    response = client.get("/users/?page=3", headers=header)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 3
+    assert len(data["users"]) == 5
+
+
+def test_list_users_custom_per_page(client: TestClient, user_factory):
+    names = [f"user-{i}" for i in range(15)]
+    users = user_factory(names)
+    header = get_auth_header(users["user-0"])
+
+    response = client.get("/users/?per_page=5", headers=header)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["per_page"] == 5
+    assert data["total"] == 15
+    assert len(data["users"]) == 5
+
+
+def test_list_users_page_beyond_total_returns_empty(client: TestClient, mock_user):
+    response = client.get("/users/?page=999", headers=get_auth_header(mock_user))
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["users"] == []
+    assert data["total"] == 1
+
+
+def test_list_users_rejects_page_zero(client: TestClient, mock_user):
+    response = client.get("/users/?page=0", headers=get_auth_header(mock_user))
+
+    assert response.status_code == 422
+
+
+def test_list_users_rejects_per_page_over_100(client: TestClient, mock_user):
+    response = client.get("/users/?per_page=101", headers=get_auth_header(mock_user))
+
+    assert response.status_code == 422
 
 
 def test_list_users_requires_authentication(client: TestClient):
