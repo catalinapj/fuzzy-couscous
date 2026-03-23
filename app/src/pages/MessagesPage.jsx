@@ -17,15 +17,29 @@ import SearchIcon from "@mui/icons-material/Search";
 import CreateIcon from "@mui/icons-material/Create";
 import PhoneIcon from "@mui/icons-material/Phone";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { stringAvatar } from "../data/contacts";
 import { useFooter } from "../contexts/FooterContext";
 import MessageInputFooter from "../components/MessageInputFooter";
 
+const API_BASE = "http://127.0.0.1:8080";
+
+function getToken() {
+  return localStorage.getItem("access_token");
+}
+
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${getToken()}`,
+    "Content-Type": "application/json",
+  };
+}
+
 export default function MessagesPage() {
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
-  const [messagesByChat, setMessagesByChat] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -34,9 +48,8 @@ export default function MessagesPage() {
   const { setFooterContent } = useFooter();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const token = localStorage.getItem("access_token");
-
+    const init = async () => {
+      const token = getToken();
       if (!token) {
         setError("No token found. Please log in first.");
         setLoadingUsers(false);
@@ -44,12 +57,16 @@ export default function MessagesPage() {
       }
 
       try {
-        const response = await fetch("http://127.0.0.1:8080/users/", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const meResp = await fetch(`${API_BASE}/users/me`, {
+          headers: authHeaders(),
+        });
+        if (meResp.ok) {
+          const me = await meResp.json();
+          setCurrentUserId(me.id);
+        }
+
+        const response = await fetch(`${API_BASE}/users/?per_page=100`, {
+          headers: authHeaders(),
         });
 
         if (!response.ok) {
@@ -57,14 +74,12 @@ export default function MessagesPage() {
           throw new Error(data.detail || "Failed to fetch users");
         }
 
-        const users = await response.json();
-
-        const userChats = users.map((user, index) => ({
+        const data = await response.json();
+        const userChats = data.users.map((user) => ({
           id: user.id,
           name: user.username,
           lastMessage: "Start chatting",
-          lastMessageTime: index === 0 ? "Now" : "",
-          unreadCount: 0,
+          lastMessageTime: "",
         }));
 
         setChats(userChats);
@@ -78,50 +93,66 @@ export default function MessagesPage() {
       }
     };
 
-    fetchUsers();
+    init();
   }, []);
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    const fetchConversation = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE}/messages/conversation/${selectedChatId}`,
+          { headers: authHeaders() }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setMessages(data);
+        }
+      } catch {
+        setMessages([]);
+      }
+    };
+
+    fetchConversation();
+  }, [selectedChatId]);
 
   const selectedChat = useMemo(
     () => chats.find((c) => c.id === selectedChatId) || chats[0],
     [chats, selectedChatId]
   );
 
-  const messages = messagesByChat[selectedChat?.id] || [];
-
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return chats;
     const query = searchQuery.toLowerCase();
-    return chats.filter(
-      (chat) =>
-        chat.name.toLowerCase().includes(query) ||
-        chat.lastMessage.toLowerCase().includes(query)
-    );
+    return chats.filter((chat) => chat.name.toLowerCase().includes(query));
   }, [chats, searchQuery]);
 
   const handleSelectChat = (chatId) => {
     setSelectedChatId(chatId);
   };
 
-  const handleSend = useMemo(() => {
-    return () => {
-      const trimmed = input.trim();
-      if (!trimmed || !selectedChat?.id) return;
+  const handleSend = useCallback(async () => {
+    const trimmed = input.trim();
+    if (!trimmed || !selectedChat?.id) return;
 
-      const newMessage = {
-        id: Date.now(),
-        text: trimmed,
-        author: "You",
-        timestamp: new Date(),
-      };
+    try {
+      const response = await fetch(`${API_BASE}/messages/`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          receiver_id: selectedChat.id,
+          content: trimmed,
+        }),
+      });
 
-      setMessagesByChat((prev) => ({
-        ...prev,
-        [selectedChat.id]: [...(prev[selectedChat.id] || []), newMessage],
-      }));
+      if (!response.ok) return;
 
-      // Update chat's last message
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
+      const saved = await response.json();
+      setMessages((prev) => [...prev, saved]);
+
+      setChats((prev) =>
+        prev.map((chat) =>
           chat.id === selectedChat.id
             ? {
                 ...chat,
@@ -136,14 +167,15 @@ export default function MessagesPage() {
       );
 
       setInput("");
-    };
+    } catch {
+      // silently fail for now
+    }
   }, [input, selectedChat?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, selectedChat?.id]);
 
-  // Set footer content when component mounts/updates
   useEffect(() => {
     setFooterContent(
       <MessageInputFooter
@@ -152,31 +184,15 @@ export default function MessagesPage() {
         onSend={handleSend}
       />
     );
-    
-    // Cleanup: clear footer when leaving this page
     return () => setFooterContent(null);
   }, [input, setFooterContent, handleSend]);
 
-  const formatTime = (date) => {
-    const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (days === 0) {
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } else if (days === 1) {
-      return "Yesterday";
-    } else if (days < 7) {
-      return date.toLocaleDateString("en-US", { weekday: "short" });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "short",
-      });
-    }
+  const formatTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (!selectedChat) {
@@ -188,7 +204,7 @@ export default function MessagesPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: 'grey.100',
+          bgcolor: "grey.100",
         }}
       >
         <Typography>Select a chat to start messaging</Typography>
@@ -204,7 +220,7 @@ export default function MessagesPage() {
         height: "calc(100vh - 64px)",
         width: "100vw",
         display: "flex",
-        bgcolor: 'background.paper',
+        bgcolor: "background.paper",
       }}
     >
       {/* Left Panel - Chat List */}
@@ -212,13 +228,12 @@ export default function MessagesPage() {
         sx={{
           width: "400px",
           borderRight: 1,
-          borderColor: 'divider',
+          borderColor: "divider",
           display: "flex",
           flexDirection: "column",
-          bgcolor: 'grey.50',
+          bgcolor: "grey.50",
         }}
       >
-        {/* Header */}
         <Box
           sx={{
             p: 2,
@@ -226,8 +241,8 @@ export default function MessagesPage() {
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
+            borderColor: "divider",
+            bgcolor: "background.paper",
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -238,12 +253,11 @@ export default function MessagesPage() {
           </IconButton>
         </Box>
 
-        {/* Search Bar */}
-        <Box sx={{ p: 1.5, bgcolor: 'background.paper' }}>
+        <Box sx={{ p: 1.5, bgcolor: "background.paper" }}>
           <TextField
             fullWidth
             size="small"
-            placeholder="Search (⌘K)"
+            placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -256,7 +270,6 @@ export default function MessagesPage() {
           />
         </Box>
 
-        {/* Chat List */}
         <Box sx={{ flex: 1, overflowY: "auto" }}>
           {loadingUsers && (
             <Typography sx={{ px: 2, py: 1.5, color: "text.secondary" }}>
@@ -278,10 +291,8 @@ export default function MessagesPage() {
                   px: 2,
                   py: 1.5,
                   "&.Mui-selected": {
-                    bgcolor: 'action.selected',
-                    "&:hover": {
-                      bgcolor: 'action.hover',
-                    },
+                    bgcolor: "action.selected",
+                    "&:hover": { bgcolor: "action.hover" },
                   },
                 }}
               >
@@ -297,14 +308,7 @@ export default function MessagesPage() {
                         alignItems: "center",
                       }}
                     >
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          fontWeight: chat.unreadCount > 0 ? 600 : 400,
-                        }}
-                      >
-                        {chat.name}
-                      </Typography>
+                      <Typography variant="body1">{chat.name}</Typography>
                       <Typography
                         variant="caption"
                         sx={{ color: "text.secondary", ml: 1 }}
@@ -314,41 +318,18 @@ export default function MessagesPage() {
                     </Box>
                   }
                   secondary={
-                    <Box
+                    <Typography
+                      variant="body2"
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        color: "text.secondary",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                         mt: 0.5,
                       }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "text.secondary",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          flex: 1,
-                        }}
-                      >
-                        {chat.lastMessage}
-                      </Typography>
-                      {chat.unreadCount > 0 && (
-                        <Chip
-                          label={chat.unreadCount}
-                          size="small"
-                          color="primary"
-                          sx={{
-                            height: "20px",
-                            minWidth: "20px",
-                            fontSize: "0.7rem",
-                            fontWeight: 600,
-                            ml: 1,
-                          }}
-                        />
-                      )}
-                    </Box>
+                      {chat.lastMessage}
+                    </Typography>
                   }
                 />
               </ListItemButton>
@@ -363,10 +344,9 @@ export default function MessagesPage() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          bgcolor: 'background.paper',
+          bgcolor: "background.paper",
         }}
       >
-        {/* Conversation Header */}
         <Box
           sx={{
             p: 2,
@@ -374,8 +354,7 @@ export default function MessagesPage() {
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
+            borderColor: "divider",
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -384,10 +363,7 @@ export default function MessagesPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {selectedChat.name}
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{ color: "text.secondary" }}
-              >
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
                 last seen recently
               </Typography>
             </Box>
@@ -405,7 +381,6 @@ export default function MessagesPage() {
           </Box>
         </Box>
 
-        {/* Messages Area */}
         <Box
           sx={{
             flex: 1,
@@ -427,106 +402,54 @@ export default function MessagesPage() {
                 color: "text.secondary",
               }}
             >
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                {new Date().toLocaleDateString("en-US", {
-                  day: "numeric",
-                  month: "long",
-                })}
-              </Typography>
-              <Typography variant="caption">
-                {selectedChat.name} joined Telegram
+              <Typography variant="body2">
+                No messages yet. Say hello!
               </Typography>
             </Box>
           ) : (
             <>
-              {messages.map((message, index) => {
-                const isOwnMessage = message.author === "You";
-                const showDate =
-                  index === 0 ||
-                  new Date(message.timestamp).toDateString() !==
-                    new Date(messages[index - 1].timestamp).toDateString();
-
+              {messages.map((message) => {
+                const isOwn = message.sender_id === currentUserId;
                 return (
-                  <Box key={message.id}>
-                    {showDate && (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "center",
-                          my: 2,
-                        }}
-                      >
-                        <Chip
-                          label={formatTime(message.timestamp)}
-                          size="small"
-                          variant="filled"
-                          sx={{
-                            bgcolor: 'action.selected',
-                            fontSize: "0.75rem",
-                          }}
-                        />
-                      </Box>
-                    )}
-                    <Box
+                  <Box
+                    key={message.id}
+                    sx={{
+                      display: "flex",
+                      justifyContent: isOwn ? "flex-end" : "flex-start",
+                      mb: 0.5,
+                    }}
+                  >
+                    <Paper
+                      elevation={0}
                       sx={{
-                        display: "flex",
-                        justifyContent: isOwnMessage ? "flex-end" : "flex-start",
-                        mb: 1,
+                        p: 1.5,
+                        maxWidth: "60%",
+                        bgcolor: isOwn ? "primary.main" : "grey.200",
+                        color: isOwn ? "primary.contrastText" : "text.primary",
+                        borderRadius: 2,
+                        borderTopLeftRadius: isOwn ? 16 : 0,
+                        borderTopRightRadius: isOwn ? 0 : 16,
                       }}
                     >
-                      <Paper
-                        elevation={0}
+                      <Typography
+                        variant="body1"
+                        sx={{ wordBreak: "break-word" }}
+                      >
+                        {message.content}
+                      </Typography>
+                      <Typography
+                        variant="caption"
                         sx={{
-                          p: 1.5,
-                          maxWidth: "60%",
-                          bgcolor: isOwnMessage
-                            ? 'primary.main'
-                            : 'grey.200',
-                          color: 'text.primary',
-                          borderRadius: 2,
-                          borderTopLeftRadius: isOwnMessage ? 2 : 0,
-                          borderTopRightRadius: isOwnMessage ? 0 : 2,
+                          display: "block",
+                          textAlign: "right",
+                          mt: 0.5,
+                          fontSize: "0.7rem",
+                          opacity: 0.7,
                         }}
                       >
-                        {!isOwnMessage && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 600,
-                              display: "block",
-                              mb: 0.5,
-                            }}
-                          >
-                            {message.author}
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {message.text}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            display: "block",
-                            textAlign: "right",
-                            mt: 0.5,
-                            fontSize: "0.7rem",
-                          }}
-                        >
-                          {new Date(message.timestamp).toLocaleTimeString(
-                            "en-US",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </Typography>
-                      </Paper>
-                    </Box>
+                        {formatTime(message.created_at)}
+                      </Typography>
+                    </Paper>
                   </Box>
                 );
               })}
@@ -534,9 +457,7 @@ export default function MessagesPage() {
             </>
           )}
         </Box>
-
       </Box>
     </Container>
   );
 }
-
