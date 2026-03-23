@@ -29,10 +29,9 @@ def setup_test_database() -> None:
     Create all tables once for the test session.
     You can optionally drop them at the end if you want a clean DB each run.
     """
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
-    # If you prefer dropping all tables after tests, uncomment:
-    # Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

@@ -12,27 +12,24 @@ manager = ConnectionManager()
 @router.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket):
     db: Session = SessionLocal()
+    user = None
 
     try:
         token = get_token_from_websocket(websocket)
         user = get_user_from_token(token, db)
 
-        await manager.connect(websocket)
-        await manager.send_personal_message(
-            f"Connected as {user.username}",
-            websocket,
-        )
-
-        await manager.broadcast(f"{user.username} joined the chat")
+        await manager.connect(user.id, websocket)
+        await manager.send_json(user.id, {"type": "connected", "username": user.username})
 
         while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(f"{user.username}: {data}")
+            await websocket.receive_text()
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        if user:
+            manager.disconnect(user.id)
     except Exception:
-        manager.disconnect(websocket)
+        if user:
+            manager.disconnect(user.id)
         await websocket.close(code=1008)
     finally:
         db.close()

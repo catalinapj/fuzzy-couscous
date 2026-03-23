@@ -22,6 +22,14 @@ class MessageResponse(MessageBase):
     from_attributes = True
 
 
+class PaginatedMessagesResponse(BaseModel):
+  messages: list[MessageResponse]
+  page: int
+  per_page: int
+  total: int
+
+
 class ConversationResponse(BaseModel):
   user: UserResponse
   last_message: MessageResponse
+  unread_count: int
