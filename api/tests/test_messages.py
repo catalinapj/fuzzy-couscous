@@ -176,7 +176,7 @@ def test_conversation_requires_authentication(client: TestClient):
 
 
 def test_conversations_lists_all_chat_partners(client: TestClient, user_factory):
-    users = user_factory(["user-1", "user-2", "user-3"])
+    users = user_factory(["user-1", "user-2", "user-3", "user-4", "user-5", "user-6", "user-7", "user-8", "user-9", "user-10"])
 
     client.post(
         "/messages/",
