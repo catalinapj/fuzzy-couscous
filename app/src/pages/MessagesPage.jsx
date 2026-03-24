@@ -107,7 +107,7 @@ export default function MessagesPage() {
         );
         if (response.ok) {
           const data = await response.json();
-          setMessages(data);
+          setMessages(data.messages);
         }
       } catch {
         setMessages([]);
