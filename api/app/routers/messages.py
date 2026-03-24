@@ -6,6 +6,7 @@ from app import models, schemas
 from app.core.security import get_current_user
 from app.database import get_db
 from app.routers.ws import manager
+from app.websocket_manager import WS_EVENT_NEW_MESSAGE
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -26,7 +27,7 @@ async def create_message(
     db.refresh(db_message)
 
     await manager.send_json(message.receiver_id, {
-        "type": "new_message",
+        "type": WS_EVENT_NEW_MESSAGE,
         "message": {
             "id": db_message.id,
             "sender_id": db_message.sender_id,

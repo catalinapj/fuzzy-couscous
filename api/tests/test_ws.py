@@ -35,7 +35,7 @@ async def test_manager_disconnect_removes_connection(manager):
 
 
 @pytest.mark.anyio
-async def test_manager_disconnect_ignores_unknown_user(manager):
+async def test_manager_disconnect_ignores_unknown_user_and_does_not_raise(manager):
     manager.disconnect(999)
 
 
@@ -53,7 +53,7 @@ async def test_manager_send_json_to_connected_user(manager):
 
 
 @pytest.mark.anyio
-async def test_manager_send_json_skips_offline_user(manager):
+async def test_manager_send_json_skips_offline_user_and_does_not_raise(manager):
     await manager.send_json(999, {"type": "test"})
 
 

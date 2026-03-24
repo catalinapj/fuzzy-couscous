@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_token_from_websocket, get_user_from_token
 from app.database import SessionLocal
-from app.websocket_manager import ConnectionManager
+from app.websocket_manager import ConnectionManager, WS_EVENT_CONNECTED
 
 router = APIRouter()
 manager = ConnectionManager()
@@ -19,7 +19,7 @@ async def websocket_chat(websocket: WebSocket):
         user = get_user_from_token(token, db)
 
         await manager.connect(user.id, websocket)
-        await manager.send_json(user.id, {"type": "connected", "username": user.username})
+        await manager.send_json(user.id, {"type": WS_EVENT_CONNECTED, "username": user.username})
 
         while True:
             await websocket.receive_text()

@@ -2,6 +2,9 @@ import json
 
 from fastapi import WebSocket
 
+WS_EVENT_CONNECTED = "connected"
+WS_EVENT_NEW_MESSAGE = "new_message"
+
 
 class ConnectionManager:
     def __init__(self) -> None:
