@@ -78,7 +78,9 @@ export default function MessagesPage() {
         id: convo.user.id,
         name: convo.user.username,
         lastMessage: convo.last_message.content,
-        lastMessageTime: new Date(convo.last_message.created_at).toLocaleTimeString("en-US", {
+        lastMessageTime: new Date(
+          convo.last_message.created_at,
+        ).toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         }),
@@ -113,7 +115,10 @@ export default function MessagesPage() {
       const msg = data.message;
 
       setMessages((prev) => {
-        if (msg.sender_id === selectedChatId || msg.receiver_id === selectedChatId) {
+        if (
+          msg.sender_id === selectedChatId ||
+          msg.receiver_id === selectedChatId
+        ) {
           return [...prev, msg];
         }
         return prev;
@@ -128,13 +133,17 @@ export default function MessagesPage() {
               ? {
                   ...c,
                   lastMessage: msg.content,
-                  lastMessageTime: new Date(msg.created_at).toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                  unreadCount: partnerId === selectedChatId ? 0 : c.unreadCount + 1,
+                  lastMessageTime: new Date(msg.created_at).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  ),
+                  unreadCount:
+                    partnerId === selectedChatId ? 0 : c.unreadCount + 1,
                 }
-              : c
+              : c,
           );
           const idx = updated.findIndex((c) => c.id === partnerId);
           if (idx > 0) {
@@ -148,10 +157,13 @@ export default function MessagesPage() {
             id: partnerId,
             name: `user-${partnerId}`,
             lastMessage: msg.content,
-            lastMessageTime: new Date(msg.created_at).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            lastMessageTime: new Date(msg.created_at).toLocaleTimeString(
+              "en-US",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+              },
+            ),
             unreadCount: 1,
           },
           ...prev,
@@ -169,7 +181,7 @@ export default function MessagesPage() {
       try {
         const response = await fetch(
           `${API_BASE}/messages/conversation/${selectedChatId}`,
-          { headers: authHeaders() }
+          { headers: authHeaders() },
         );
         if (response.ok) {
           const data = await response.json();
@@ -185,7 +197,7 @@ export default function MessagesPage() {
 
   const selectedChat = useMemo(
     () => chats.find((c) => c.id === selectedChatId) || chats[0],
-    [chats, selectedChatId]
+    [chats, selectedChatId],
   );
 
   const filteredChats = useMemo(() => {
@@ -198,8 +210,8 @@ export default function MessagesPage() {
     setSelectedChatId(chatId);
     setChats((prev) =>
       prev.map((chat) =>
-        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-      )
+        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat,
+      ),
     );
   };
 
@@ -233,7 +245,7 @@ export default function MessagesPage() {
                   minute: "2-digit",
                 }),
               }
-            : chat
+            : chat,
         );
         const idx = updated.findIndex((c) => c.id === selectedChat.id);
         if (idx > 0) {
@@ -259,7 +271,7 @@ export default function MessagesPage() {
         input={input}
         setInput={setInput}
         onSend={handleSend}
-      />
+      />,
     );
     return () => setFooterContent(null);
   }, [input, setFooterContent, handleSend]);
@@ -399,7 +411,13 @@ export default function MessagesPage() {
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: chat.unreadCount > 0 ? "primary.main" : "text.secondary", ml: 1 }}
+                        sx={{
+                          color:
+                            chat.unreadCount > 0
+                              ? "primary.main"
+                              : "text.secondary",
+                          ml: 1,
+                        }}
                       >
                         {chat.lastMessageTime}
                       </Typography>
@@ -409,7 +427,10 @@ export default function MessagesPage() {
                     <Typography
                       variant="body2"
                       sx={{
-                        color: chat.unreadCount > 0 ? "text.primary" : "text.secondary",
+                        color:
+                          chat.unreadCount > 0
+                            ? "text.primary"
+                            : "text.secondary",
                         fontWeight: chat.unreadCount > 0 ? 600 : 400,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
