@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Container,
   Typography,
@@ -11,7 +12,6 @@ import {
   ListItemAvatar,
   ListItemText,
   Paper,
-  Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CreateIcon from "@mui/icons-material/Create";
@@ -47,54 +47,120 @@ export default function MessagesPage() {
   const messagesEndRef = useRef(null);
   const { setFooterContent } = useFooter();
 
+  const fetchConversations = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setError("No token found. Please log in first.");
+      setLoadingUsers(false);
+      return;
+    }
+
+    try {
+      const meResp = await fetch(`${API_BASE}/users/me`, {
+        headers: authHeaders(),
+      });
+      if (meResp.ok) {
+        const me = await meResp.json();
+        setCurrentUserId(me.id);
+      }
+
+      const response = await fetch(`${API_BASE}/messages/conversations`, {
+        headers: authHeaders(),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to fetch conversations");
+      }
+
+      const data = await response.json();
+      const userChats = data.map((convo) => ({
+        id: convo.user.id,
+        name: convo.user.username,
+        lastMessage: convo.last_message.content,
+        lastMessageTime: new Date(convo.last_message.created_at).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        unreadCount: convo.unread_count,
+      }));
+
+      setChats(userChats);
+      if (!selectedChatId && userChats.length > 0) {
+        setSelectedChatId(userChats[0].id);
+      }
+    } catch (err) {
+      setError(err.message || "Unexpected error while fetching conversations");
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [selectedChatId]);
+
   useEffect(() => {
-    const init = async () => {
-      const token = getToken();
-      if (!token) {
-        setError("No token found. Please log in first.");
-        setLoadingUsers(false);
-        return;
-      }
+    fetchConversations();
+  }, []);
 
-      try {
-        const meResp = await fetch(`${API_BASE}/users/me`, {
-          headers: authHeaders(),
-        });
-        if (meResp.ok) {
-          const me = await meResp.json();
-          setCurrentUserId(me.id);
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    const ws = new WebSocket(`ws://127.0.0.1:8080/ws/chat?token=${token}`);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type !== "new_message") return;
+
+      const msg = data.message;
+
+      setMessages((prev) => {
+        if (msg.sender_id === selectedChatId || msg.receiver_id === selectedChatId) {
+          return [...prev, msg];
         }
+        return prev;
+      });
 
-        const response = await fetch(`${API_BASE}/users/?per_page=100`, {
-          headers: authHeaders(),
-        });
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.detail || "Failed to fetch users");
+      setChats((prev) => {
+        const partnerId = msg.sender_id;
+        const existing = prev.find((c) => c.id === partnerId);
+        if (existing) {
+          const updated = prev.map((c) =>
+            c.id === partnerId
+              ? {
+                  ...c,
+                  lastMessage: msg.content,
+                  lastMessageTime: new Date(msg.created_at).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  unreadCount: partnerId === selectedChatId ? 0 : c.unreadCount + 1,
+                }
+              : c
+          );
+          const idx = updated.findIndex((c) => c.id === partnerId);
+          if (idx > 0) {
+            const [moved] = updated.splice(idx, 1);
+            updated.unshift(moved);
+          }
+          return updated;
         }
-
-        const data = await response.json();
-        const userChats = data.users.map((user) => ({
-          id: user.id,
-          name: user.username,
-          lastMessage: "Start chatting",
-          lastMessageTime: "",
-        }));
-
-        setChats(userChats);
-        if (userChats.length > 0) {
-          setSelectedChatId(userChats[0].id);
-        }
-      } catch (err) {
-        setError(err.message || "Unexpected error while fetching users");
-      } finally {
-        setLoadingUsers(false);
-      }
+        return [
+          {
+            id: partnerId,
+            name: `user-${partnerId}`,
+            lastMessage: msg.content,
+            lastMessageTime: new Date(msg.created_at).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            unreadCount: 1,
+          },
+          ...prev,
+        ];
+      });
     };
 
-    init();
-  }, []);
+    return () => ws.close();
+  }, [selectedChatId]);
 
   useEffect(() => {
     if (!selectedChatId) return;
@@ -130,6 +196,11 @@ export default function MessagesPage() {
 
   const handleSelectChat = (chatId) => {
     setSelectedChatId(chatId);
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
+      )
+    );
   };
 
   const handleSend = useCallback(async () => {
@@ -151,8 +222,8 @@ export default function MessagesPage() {
       const saved = await response.json();
       setMessages((prev) => [...prev, saved]);
 
-      setChats((prev) =>
-        prev.map((chat) =>
+      setChats((prev) => {
+        const updated = prev.map((chat) =>
           chat.id === selectedChat.id
             ? {
                 ...chat,
@@ -163,8 +234,14 @@ export default function MessagesPage() {
                 }),
               }
             : chat
-        )
-      );
+        );
+        const idx = updated.findIndex((c) => c.id === selectedChat.id);
+        if (idx > 0) {
+          const [moved] = updated.splice(idx, 1);
+          updated.unshift(moved);
+        }
+        return updated;
+      });
 
       setInput("");
     } catch {
@@ -297,7 +374,13 @@ export default function MessagesPage() {
                 }}
               >
                 <ListItemAvatar>
-                  <Avatar {...stringAvatar(chat.name)} />
+                  <Badge
+                    badgeContent={chat.unreadCount}
+                    color="primary"
+                    overlap="circular"
+                  >
+                    <Avatar {...stringAvatar(chat.name)} />
+                  </Badge>
                 </ListItemAvatar>
                 <ListItemText
                   primary={
@@ -308,10 +391,15 @@ export default function MessagesPage() {
                         alignItems: "center",
                       }}
                     >
-                      <Typography variant="body1">{chat.name}</Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: chat.unreadCount > 0 ? 700 : 400 }}
+                      >
+                        {chat.name}
+                      </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: "text.secondary", ml: 1 }}
+                        sx={{ color: chat.unreadCount > 0 ? "primary.main" : "text.secondary", ml: 1 }}
                       >
                         {chat.lastMessageTime}
                       </Typography>
@@ -321,7 +409,8 @@ export default function MessagesPage() {
                     <Typography
                       variant="body2"
                       sx={{
-                        color: "text.secondary",
+                        color: chat.unreadCount > 0 ? "text.primary" : "text.secondary",
+                        fontWeight: chat.unreadCount > 0 ? 600 : 400,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
