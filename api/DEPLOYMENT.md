@@ -25,9 +25,10 @@ docker push europe-west9-docker.pkg.dev/learned-surge-492109-i0/chat-app/chat-ap
 
 ```bash
 # Deploy with the new version
+export DB_URL='YOUR_DATABASE_CONNECTION_STRING_HERE'
 gcloud run deploy chat-app-backend \
   --region=europe-west2 \
-  --image=europe-west9-docker.pkg.dev/learned-surge-492109-i0/chat-app/chat-app-backend:<UNIQUE-TAG-HERE> \
-  --set-env-vars DATABASE_URL="YOUR_DATABASE_URL" \
+  --image=europe-west9-docker.pkg.dev/learned-surge-492109-i0/chat-app/chat-app-backend:v00 \
+  --set-env-vars DATABASE_URL="$DB_URL" \
   --add-cloudsql-instances=learned-surge-492109-i0:europe-west2:chat-app-db
 ```
