@@ -25,13 +25,30 @@ target_metadata = Base.metadata
 
 def get_url() -> str:
     """
-    Resolve the database URL, preferring the DATABASE_URL environment
-    variable if present, otherwise falling back to alembic.ini.
+    Resolve the database URL from DATABASE_URL environment variable.
+    Convert Cloud SQL Proxy format for compatibility.
     """
     env_url = os.getenv("DATABASE_URL")
-    if env_url:
-        return env_url
-    return config.get_main_option("sqlalchemy.url")
+    
+    if not env_url:
+        raise ValueError(
+            "DATABASE_URL environment variable is required for database migrations."
+        )
+    
+    # Convert Cloud SQL Proxy format if needed
+    # From: postgresql+psycopg2://user:pass@//cloudsql/project:region:instance/db
+    # To:   postgresql+psycopg2://user:pass@localhost/db?host=/cloudsql/project:region:instance
+    if "//cloudsql/" in env_url:
+        import re
+        match = re.match(
+            r"(postgresql\+psycopg2://[^@]+)@//cloudsql/([^:]+:[^:]+:[^/]+)(/.+)",
+            env_url
+        )
+        if match:
+            converted_url = f"{match.group(1)}@localhost{match.group(3)}?host=/cloudsql/{match.group(2)}"
+            return converted_url
+    
+    return env_url
 
 
 def run_migrations_offline() -> None:
