@@ -2,10 +2,9 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://admin:secret@localhost:5432/chatapp"
-)
+DB_URL = os.getenv("DATABASE_URL")
+if not DB_URL:
+    raise ValueError("DATABASE_URL environment variable not set")
 
 engine = create_engine(DB_URL, pool_pre_ping=True)
 
