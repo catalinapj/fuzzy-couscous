@@ -4,6 +4,7 @@ import {
   Typography,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemIcon,
   Switch,
@@ -17,8 +18,10 @@ import LanguageIcon from "@mui/icons-material/Language";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function SettingsPage() {
+  const { logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
@@ -189,25 +192,28 @@ export default function SettingsPage() {
 
           <Divider />
 
-          <ListItem
-            sx={{
-              px: 2,
-              py: 1.5,
-              color: "#f44336",
-              "&:hover": {
-                bgcolor: "rgba(244, 67, 54, 0.1)",
-              },
-            }}
-          >
-            <ListItemIcon>
-              <LogoutIcon sx={{ color: "#f44336" }} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Logout"
-              primaryTypographyProps={{
-                sx: { color: "#f44336", fontWeight: 500 },
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => logout()}
+              sx={{
+                px: 2,
+                py: 1.5,
+                color: "#f44336",
+                "&:hover": {
+                  bgcolor: "rgba(244, 67, 54, 0.1)",
+                },
               }}
-            />
+            >
+              <ListItemIcon>
+                <LogoutIcon sx={{ color: "#f44336" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Logout"
+                primaryTypographyProps={{
+                  sx: { color: "#f44336", fontWeight: 500 },
+                }}
+              />
+            </ListItemButton>
           </ListItem>
         </List>
       </Box>

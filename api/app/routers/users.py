@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -17,12 +18,31 @@ def read_me(current_user: models.User = Depends(get_current_user)):
 def list_users(
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=10, ge=1, le=100),
+    q: str | None = Query(
+        default=None,
+        description="Filter by username or email (contains, case-insensitive); "
+        "numeric values also match user id.",
+    ),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    total = db.query(models.User).count()
+    base = db.query(models.User)
+
+    if q is not None:
+        term = q.strip()
+        if term:
+            like = f"%{term}%"
+            filters = [
+                models.User.username.ilike(like),
+                models.User.email.ilike(like),
+            ]
+            if term.isdigit():
+                filters.append(models.User.id == int(term))
+            base = base.filter(or_(*filters))
+
+    total = base.count()
     offset = (page - 1) * per_page
-    users = db.query(models.User).offset(offset).limit(per_page).all()
+    users = base.offset(offset).limit(per_page).all()
     return {
         "users": users,
         "page": page,

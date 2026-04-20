@@ -1,20 +1,21 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { FooterProvider } from "./contexts/FooterContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import MessagesPage from "./pages/MessagesPage";
 import SettingsPage from "./pages/SettingsPage";
 import UsersPage from "./pages/UsersPage";
+import AuthPage from "./AuthPage";
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // if (!isAuthenticated) {
-  //   return <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />;
-  // }
+function AppRoutes() {
+  const { isAuthenticated, login } = useAuth();
 
   // unread messages
-  const unreadCount = 3; 
+  const unreadCount = 3;
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthSuccess={login} />;
+  }
 
   return (
     <BrowserRouter>
@@ -30,5 +31,13 @@ export default function App() {
         </Layout>
       </FooterProvider>
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }

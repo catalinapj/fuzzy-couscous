@@ -43,6 +43,33 @@ def test_list_users_last_page_partial(client: TestClient, user_factory):
     assert len(data["users"]) == 5
 
 
+def test_list_users_filter_by_q_username(client: TestClient, user_factory):
+    names = [f"user-{i}" for i in range(5)]
+    users = user_factory(names)
+    header = get_auth_header(users["user-0"])
+
+    response = client.get("/users/?q=user-2", headers=header)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["users"][0]["username"] == "user-2"
+
+
+def test_list_users_filter_by_id(client: TestClient, user_factory):
+    names = [f"u{i}" for i in range(3)]
+    created = user_factory(names)
+    target = created["u1"]
+    header = get_auth_header(created["u0"])
+
+    response = client.get(f"/users/?q={target['id']}", headers=header)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["users"][0]["id"] == target["id"]
+
+
 def test_list_users_custom_per_page(client: TestClient, user_factory):
     names = [f"user-{i}" for i in range(15)]
     users = user_factory(names)
