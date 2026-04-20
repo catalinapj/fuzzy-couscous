@@ -22,7 +22,7 @@ import { stringAvatar } from "../data/contacts";
 import { useFooter } from "../contexts/FooterContext";
 import MessageInputFooter from "../components/MessageInputFooter";
 
-const API_BASE = "http://127.0.0.1:8080";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 function getToken() {
   return localStorage.getItem("access_token");
