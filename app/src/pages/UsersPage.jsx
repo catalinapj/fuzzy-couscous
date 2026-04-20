@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Box,
   Typography,
   Avatar,
+  Button,
   List,
   ListItem,
   ListItemAvatar,
@@ -10,9 +12,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { stringAvatar } from "../data/contacts";
+import { API_BASE } from "../config";
 
 const PER_PAGE = 20;
-const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -124,6 +126,9 @@ export default function UsersPage() {
                 sx={{
                   px: 2,
                   py: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
                   "&:hover": { bgcolor: "action.hover" },
                 }}
               >
@@ -131,6 +136,7 @@ export default function UsersPage() {
                   <Avatar {...stringAvatar(user.username)} />
                 </ListItemAvatar>
                 <ListItemText
+                  sx={{ flex: "1 1 auto", minWidth: 0 }}
                   primary={
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {user.username}
@@ -138,6 +144,16 @@ export default function UsersPage() {
                   }
                   secondary={user.email}
                 />
+                <Button
+                  component={RouterLink}
+                  to={`/chat?with=${user.id}&name=${encodeURIComponent(user.username)}`}
+                  state={{ startChat: { id: user.id, username: user.username } }}
+                  variant="outlined"
+                  size="small"
+                  type="button"
+                >
+                  Message
+                </Button>
               </ListItem>
             );
           })}
