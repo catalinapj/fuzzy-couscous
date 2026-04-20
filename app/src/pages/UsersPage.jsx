@@ -12,6 +12,7 @@ import {
 import { stringAvatar } from "../data/contacts";
 
 const PER_PAGE = 20;
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -34,7 +35,7 @@ export default function UsersPage() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8080/users/?page=${pageToFetch}&per_page=${PER_PAGE}`,
+        `${API_BASE}/users/?page=${pageToFetch}&per_page=${PER_PAGE}`,
         {
           method: "GET",
           headers: {
