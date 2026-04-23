@@ -1,1 +1,3 @@
 database_credentials.txt
+deploy-frontend.sh
+deploy-backend.sh
