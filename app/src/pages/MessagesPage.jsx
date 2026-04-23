@@ -232,7 +232,10 @@ export default function MessagesPage() {
     const token = getToken();
     if (!token || !API_BASE) return;
 
-    const url = websocketUrl(API_BASE, `/ws/chat?token=${encodeURIComponent(token)}`);
+    const url = websocketUrl(
+      API_BASE,
+      `/ws/chat?token=${encodeURIComponent(token)}`,
+    );
     if (!url) return;
 
     const ws = new WebSocket(url);
@@ -568,9 +571,7 @@ export default function MessagesPage() {
             {filteredChats.map((chat) => (
               <ListItemButton
                 key={chat.id}
-                selected={
-                  Boolean(selectedChat) && chat.id === selectedChat.id
-                }
+                selected={Boolean(selectedChat) && chat.id === selectedChat.id}
                 onClick={() => handleSelectChat(chat.id)}
                 sx={{
                   px: 2,
@@ -664,9 +665,7 @@ export default function MessagesPage() {
             {directoryCandidates.map((user) => (
               <ListItemButton
                 key={`dir-${user.id}`}
-                selected={
-                  Boolean(selectedChat) && user.id === selectedChat.id
-                }
+                selected={Boolean(selectedChat) && user.id === selectedChat.id}
                 onClick={() => handleOpenDirectoryUser(user)}
                 sx={{
                   px: 2,
@@ -746,7 +745,10 @@ export default function MessagesPage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {selectedChat.name}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
                     last seen recently
                   </Typography>
                 </Box>
@@ -808,7 +810,9 @@ export default function MessagesPage() {
                             p: 1.5,
                             maxWidth: "60%",
                             bgcolor: isOwn ? "primary.main" : "grey.200",
-                            color: isOwn ? "primary.contrastText" : "text.primary",
+                            color: isOwn
+                              ? "primary.contrastText"
+                              : "text.primary",
                             borderRadius: 2,
                             borderTopLeftRadius: isOwn ? 16 : 0,
                             borderTopRightRadius: isOwn ? 0 : 16,
