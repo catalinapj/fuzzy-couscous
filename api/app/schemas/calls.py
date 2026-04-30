@@ -29,8 +29,6 @@ class Call(BaseModel):
     receiver_id: int
     room_name: str | None = Field(default=None, max_length=512)
     room_url: str = Field(min_length=1, max_length=2000)
-    sender_token: str | None = Field(default=None, max_length=2000)
-    receiver_token: str | None = Field(default=None, max_length=2000)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

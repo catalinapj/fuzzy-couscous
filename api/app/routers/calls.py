@@ -1,10 +1,8 @@
 import os
 import requests
 from urllib.parse import urlparse
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
 from app.database import get_db
 from app import models
