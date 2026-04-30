@@ -52,8 +52,8 @@ async def create_call(
 
     return {
         "room_url": room["url"],
-        "user_token": token_a,
-        "target_token": token_b,
+        "sender_token": token_a,
+        "receiver_token": token_b,
     }
 
 
