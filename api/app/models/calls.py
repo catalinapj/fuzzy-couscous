@@ -1,7 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Integer, String
-
 from app.models.base import BaseModel
-
 
 class Call(BaseModel):
     __tablename__ = "calls"
@@ -10,5 +8,3 @@ class Call(BaseModel):
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     room_name = Column(String(512), nullable=True)
     room_url = Column(String(2000), nullable=False)
-    sender_token = Column(String(2000), nullable=True)
-    receiver_token = Column(String(2000), nullable=True)
