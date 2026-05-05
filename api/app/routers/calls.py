@@ -1,10 +1,9 @@
+import os
+import requests
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import requests
-import os
-from datetime import datetime, timedelta
-import jwt
-from fastapi import Body
 
 from app.core.security import get_current_user
 from app.database import get_db
@@ -17,7 +16,7 @@ DAILY_API_KEY = os.getenv("DAILY_API_KEY")
 DAILY_API_URL = "https://api.daily.co/v1"
 
 
-@router.post("/")
+@router.post("/", response_model=schemas.CallResponse)
 async def create_call(
     request: schemas.CallCreate,
     current_user: models.User = Depends(get_current_user),
@@ -37,31 +36,106 @@ async def create_call(
             status_code=404, detail="Target user not found"
         )
 
-    # Create room with max 2 participants
-    room_resp = requests.post(
-        f"{DAILY_API_URL}/rooms",
-        json={"privacy": "public", "max_participants": 2},
-        headers={"Authorization": f"Bearer {DAILY_API_KEY}"},
+    room = _create_daily_room()
+
+    db_call = models.Call(
+        sender_id=current_user.id,
+        receiver_id=target_user.id,
+        room_name=room["name"],
+        room_url=room["url"],
     )
-    room_resp.raise_for_status()
-    room = room_resp.json()
+    db.add(db_call)
+    db.commit()
+    db.refresh(db_call)
 
-    # Generate tokens for both users
-    token_a = _generate_daily_token(room["url"], str(current_user.id), is_owner=True)
-    token_b = _generate_daily_token(room["url"], str(target_user.id), is_owner=False)
-
-    return {
-        "room_url": room["url"],
-        "sender_token": token_a,
-        "receiver_token": token_b,
-    }
+    room_id = _daily_room_identifier(db_call)
+    return schemas.CallResponse(
+        id=db_call.id,
+        room_id=room_id,
+        room_url=db_call.room_url,
+    )
 
 
-def _generate_daily_token(room_url: str, user_id: str, is_owner: bool) -> str:
-    payload = {
-        "r": room_url,
-        "u": user_id,
-        "isOwner": str(is_owner).lower(),
-        "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
-    }
-    return jwt.encode(payload, DAILY_API_KEY, algorithm="HS256")
+@router.get("/{call_id}", response_model=schemas.CallJoinResponse)
+def get_call(
+    call_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db_call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not db_call:
+        raise HTTPException(status_code=404, detail="Call not found")
+
+    if current_user.id not in (db_call.sender_id, db_call.receiver_id):
+        raise HTTPException(status_code=403, detail="Not part of this call")
+
+    room_id = _daily_room_identifier(db_call)
+    token = _create_meeting_token(
+        room_name=room_id,
+        user_name=current_user.username,
+        is_owner=current_user.id == db_call.sender_id,
+    )
+    return schemas.CallJoinResponse(
+        room_id=room_id,
+        room_url=db_call.room_url,
+        token=token,
+    )
+
+
+def _daily_room_identifier(call_row: models.Call) -> str:
+    if getattr(call_row, "room_name", None):
+        return call_row.room_name
+    parsed = urlparse(call_row.room_url or "")
+    seg = parsed.path.strip("/").split("/", maxsplit=1)[0].strip()
+    if seg:
+        return seg
+    raise HTTPException(
+        status_code=500,
+        detail="Call missing Daily room name; recreate the call.",
+    )
+
+
+def _daily_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {DAILY_API_KEY}"}
+
+
+def _create_daily_room() -> dict:
+    try:
+        room_resp = requests.post(
+            f"{DAILY_API_URL}/rooms",
+            json={"privacy": "private", "max_participants": 2},
+            headers=_daily_headers(),
+            timeout=15,
+        )
+        room_resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to create Daily room: {exc}",
+        ) from exc
+
+    return room_resp.json()
+
+
+def _create_meeting_token(room_name: str, user_name: str, is_owner: bool) -> str:
+    try:
+        token_resp = requests.post(
+            f"{DAILY_API_URL}/meeting-tokens",
+            json={
+                "properties": {
+                    "room_name": room_name,
+                    "user_name": user_name,
+                    "is_owner": is_owner,
+                }
+            },
+            headers=_daily_headers(),
+            timeout=15,
+        )
+        token_resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to create Daily meeting token: {exc}",
+        ) from exc
+
+    return token_resp.json()["token"]
