@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
-import pytest
 import requests
 
+from app import models
 from app.routers import calls as calls_router
 from tests.conftest import get_auth_header
 
@@ -17,7 +17,7 @@ class _FakeDailyResponse:
         return self._payload
 
 
-def test_create_call_returns_room_and_tokens(
+def test_create_call_returns_call_room_id_and_room_url(
     client: TestClient, user_factory, monkeypatch
 ):
     users = user_factory(["user-1", "user-2"])
@@ -25,11 +25,13 @@ def test_create_call_returns_room_and_tokens(
 
     captured = {}
 
-    def _fake_post(url, json, headers):
+    def _fake_post(url, json=None, headers=None, **_kwargs):
         captured["url"] = url
         captured["json"] = json
         captured["headers"] = headers
-        return _FakeDailyResponse({"url": "https://daily.example/room-123"})
+        return _FakeDailyResponse(
+            {"name": "daily-room-xyz", "url": "https://daily.example/room-123"}
+        )
 
     monkeypatch.setattr(calls_router.requests, "post", _fake_post)
 
@@ -41,12 +43,11 @@ def test_create_call_returns_room_and_tokens(
 
     assert response.status_code == 200
     data = response.json()
+    assert isinstance(data["id"], int)
+    assert data["room_id"] == "daily-room-xyz"
     assert data["room_url"] == "https://daily.example/room-123"
-    assert isinstance(data["user_token"], str) and len(data["user_token"]) > 0
-    assert isinstance(data["target_token"], str) and len(data["target_token"]) > 0
-    assert data["user_token"] != data["target_token"]
     assert captured["url"] == f"{calls_router.DAILY_API_URL}/rooms"
-    assert captured["json"] == {"privacy": "public", "max_participants": 2}
+    assert captured["json"] == {"privacy": "private", "max_participants": 2}
     assert captured["headers"] == {"Authorization": "Bearer test-daily-key"}
 
 
@@ -86,11 +87,13 @@ def test_create_call_returns_404_for_unknown_target_user(
     assert response.json()["detail"] == "Target user not found"
 
 
-def test_create_call_daily_failure_returns_500(
-    client: TestClient, user_factory, monkeypatch
+def test_create_call_daily_failure_returns_502_and_no_db_row(
+    client: TestClient, user_factory, monkeypatch, db_session
 ):
     users = user_factory(["user-1", "user-2"])
     monkeypatch.setattr(calls_router, "DAILY_API_KEY", "test-daily-key")
+
+    calls_before = db_session.query(models.Call).count()
 
     class _FailingDailyResponse:
         def raise_for_status(self) -> None:
@@ -99,14 +102,17 @@ def test_create_call_daily_failure_returns_500(
         def json(self) -> dict:
             return {}
 
-    def _fake_post(url, json, headers):
+    def _fake_post(url, json=None, headers=None, **_kwargs):
         return _FailingDailyResponse()
 
     monkeypatch.setattr(calls_router.requests, "post", _fake_post)
 
-    with pytest.raises(requests.HTTPError):
-        client.post(
-            "/calls/",
-            json={"receiver_id": users["user-2"]["id"]},
-            headers=get_auth_header(users["user-1"]),
-        )
+    response = client.post(
+        "/calls/",
+        json={"receiver_id": users["user-2"]["id"]},
+        headers=get_auth_header(users["user-1"]),
+    )
+
+    assert response.status_code == 502
+    assert "Failed to create Daily room" in response.json()["detail"]
+    assert db_session.query(models.Call).count() == calls_before
